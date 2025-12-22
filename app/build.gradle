@@ -1,4 +1,7 @@
-plugins { id 'com.android.application' }
+plugins {
+    id 'com.android.application' version '8.2.2'
+}
+
 android {
     namespace 'com.jasser.fbtool'
     compileSdk 34
@@ -6,7 +9,7 @@ android {
         applicationId "com.jasser.fbtool"
         minSdk 26
         targetSdk 34
-        versionCode 3
-        versionName "3.0"
+        versionCode 1
+        versionName "1.0"
     }
 }
